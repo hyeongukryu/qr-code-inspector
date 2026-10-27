@@ -126,17 +126,27 @@ async function inspect6(file: File, defects: DetectedDefect[]) {
             const y2 = points[2].getY();
             const x3 = points[3].getX();
             const y3 = points[3].getY();
-            positions.push([x0, y0, x1, y1, x2, y2, x3, y3]);
+            let changed = false;
             for (let i = 0; i < height; i++) {
                 for (let j = 0; j < width; j++) {
                     const index = i * width + j;
-                    if ((x1 - x0) * (i - y0) - (y1 - y0) * (j - x0) > 0 &&
-                        (x2 - x1) * (i - y1) - (y2 - y1) * (j - x1) > 0 &&
-                        (x0 - x2) * (i - y2) - (y0 - y2) * (j - x2) > 0) {
+                    const side01 = (x1 - x0) * (i - y0) - (y1 - y0) * (j - x0);
+                    const side12 = (x2 - x1) * (i - y1) - (y2 - y1) * (j - x1);
+                    const side20 = (x0 - x2) * (i - y2) - (y0 - y2) * (j - x2);
+                    // Mirrored QR codes reverse the winding of the result points.
+                    const inside = (side01 > 0 && side12 > 0 && side20 > 0) ||
+                        (side01 < 0 && side12 < 0 && side20 < 0);
+                    if (inside && luminances[index] !== 255) {
                         luminances[index] = 255;
+                        changed = true;
                     }
                 }
             }
+            // Do not count the same detection again when erasing it made no progress.
+            if (!changed) {
+                break;
+            }
+            positions.push([x0, y0, x1, y1, x2, y2, x3, y3]);
             const distance01 = Math.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2);
             sizes.push(distance01);
         } catch {
@@ -301,7 +311,7 @@ async function run(file: File, config: InspectionConfig, defects: DetectedDefect
         if (contrast < config.contrastThreshold) {
             defects.push({
                 code: 'QR001',
-                message: `대비가 ${contrast.toFixed(2)}%입니다. ${contrast.toFixed(2)}% 이상으로 설정하십시오.`,
+                message: `대비가 ${contrast.toFixed(2)}%입니다. ${config.contrastThreshold}% 이상으로 설정하십시오.`,
             });
         }
 
@@ -314,7 +324,7 @@ async function run(file: File, config: InspectionConfig, defects: DetectedDefect
         if (transformErrorRate > 0.25) {
             defects.push({
                 code: 'QR013',
-                message: `어긋한 픽셀이 너무 많습니다. 픽셀당 오류 비율이 약 ${(transformErrorRate * 100).toFixed(1)}%입니다.`,
+                message: `어긋난 픽셀이 너무 많습니다. 픽셀당 오류 비율이 약 ${(transformErrorRate * 100).toFixed(1)}%입니다.`,
             });
         }
     } catch (e) {
@@ -340,7 +350,7 @@ function inspect9(file: File, config: InspectionConfig, defects: DetectedDefect[
     if (config.bottomHeight + config.sideLength > config.userReach) {
         defects.push({
             code: 'QR009',
-            message: `상단 높이는 사용자 도달 가능 높이보다 작아야 합니다. 상단 높이는 ${config.bottomHeight + config.sideLength}이고, 사용자 도달 가능 높이는 ${config.userReach}입니다.`,
+            message: `상단 높이는 사용자 도달 가능 높이 이하여야 합니다. 상단 높이는 ${config.bottomHeight + config.sideLength}이고, 사용자 도달 가능 높이는 ${config.userReach}입니다.`,
         });
     }
 }
