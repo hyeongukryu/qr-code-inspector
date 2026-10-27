@@ -1,0 +1,3 @@
+allowBuilds:
+  'sharp@0.32.6': true
+  'yarn@1.22.22': true

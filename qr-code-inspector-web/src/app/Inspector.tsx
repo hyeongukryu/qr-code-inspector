@@ -117,7 +117,7 @@ function Query(props: { submit: (file: File, config: InspectionConfig) => void }
             <input type="checkbox" id="validate-url" checked={validateUrl}
               onChange={(e) => setValidateUrl(e.target.checked)} />
             <label className="ml-1" htmlFor="validate-url">
-              HTTP 상태 코드가 200인지 검사
+              HTTP 상태 코드가 200~299인지 검사
             </label>
           </div>
           <div className="mt-1 break-keep text-xs text-gray-700">
